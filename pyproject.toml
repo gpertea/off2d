@@ -1,0 +1,28 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "off2d"
+version = "0.1.0"
+description = "Convert MS Office files (docx, xlsx) to plain text (markdown, tab/csv)"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Geo Pertea" }]
+keywords = ["docx", "xlsx", "markdown", "csv", "converter", "cli"]
+# M1 (spreadsheet path) has ZERO third-party dependencies: the xlsx reader
+# uses only the Python standard library. docx support (M2) will add a small,
+# pure-Python, wheel-only dependency set under the optional [docx] extra, or
+# a vendored minimal converter -- kept out of the default install.
+dependencies = []
+
+[project.optional-dependencies]
+# Reserved for the docx -> markdown path (M2). Not required for xlsx.
+docx = []
+
+[project.scripts]
+off2d = "off2d.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/off2d"]
