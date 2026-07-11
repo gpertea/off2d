@@ -37,16 +37,23 @@ Note: M1 dropped the planned `openpyxl` dependency entirely -- the xlsx
 reader is pure standard library (`zipfile` + `xml.etree`), so the default
 install has zero third-party dependencies.
 
-### M2 - docx -> markdown
-- [ ] mammoth -> HTML -> markdownify GFM to stdout
-- [ ] preserve headings, bold/italic, links, bulleted/numbered lists, tables
-- [ ] `-o PATH` writes `.md`; `.gz` supported
-- [ ] tests against the genotype-formats docx (assert 28 links + tables survive)
+### M2 - docx -> markdown  [DONE]
+- [x] vendored stdlib-only converter (no mammoth/markdownify dependency)
+- [x] headings via pStyle Heading/Title AND a bold+larger-font heuristic
+      (needed for pandoc-style docs that only size their headings)
+- [x] bold, italic, inline code (Verbatim/Code char styles)
+- [x] fenced code blocks (SourceCode/Code paragraph style)
+- [x] hyperlinks (external via rels, internal anchors)
+- [x] bullet/ordered/nested lists (numbering.xml -> bullet vs decimal)
+- [x] GFM pipe tables (first row as header)
+- [x] `-o PATH` writes markdown; `.gz` supported
+- [x] tests against the genotype-formats docx (links, tables, lists, code)
 
-### M3 - Images (opt-in)
-- [ ] `-i` / `--images`: extract embedded media to a sibling folder
-- [ ] rewrite references Obsidian-style `![[image.png]]`
-- [ ] configurable image output dir; sensible default next to `-o` target
+### M3 - Images (opt-in)  [DONE]
+- [x] `-i` / `--images`: extract embedded media (a:blip r:embed -> word/media)
+- [x] rewrite references Obsidian-style `![[image.png]]`
+- [x] `--image-dir`; default `<output-stem>_media` (or `<input>_media`)
+- [x] images silently omitted without `-i`
 
 ### M4 - Packaging & distribution
 - [ ] publish to PyPI (or tagged git installs) for `uvx off2d`

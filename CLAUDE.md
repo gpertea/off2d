@@ -35,19 +35,31 @@ sniff as fallback). No long switches are required for the common case.
 
 Stack: Python >= 3.9, packaged with `pyproject.toml`, entry point `off2d`.
 
-Dependencies:
-- xlsx path (M1): **none** - pure standard library (`zipfile`, `xml.etree`,
-  `csv`, `gzip`). Do not add `openpyxl` or any third-party dep to this path.
-- docx path (M2, planned): a small pure-Python/wheel-only set (`mammoth` +
-  `markdownify`) under the optional `[docx]` extra, or a vendored minimal
-  converter. Keep it out of the default install.
+Dependencies: **none** - the whole tool is pure standard library
+(`zipfile`, `xml.etree`, `csv`, `gzip`). Both the xlsx reader and the docx
+converter are vendored. Do NOT add `openpyxl`, `mammoth`, `markdownify`, or
+any third-party dependency.
 
 Module layout (`src/off2d/`):
 - `cli.py`       - argparse (`parse_intermixed_args`), dispatch by input type
 - `detect.py`    - input type detection (extension + zip sniff)
 - `xlsx.py`      - stdlib xlsx reader (sheets, shared strings, styles, rows)
 - `sheet2txt.py` - rows -> tab/csv; delimiter/gzip guessed from `-o` name
-- `docx2md.py`   - docx -> markdown; optional image extraction (M2, TODO)
+- `docx2md.py`   - vendored docx -> markdown; heading heuristic, lists,
+                   tables, hyperlinks, code, opt-in image extraction
+
+## docx conversion notes
+
+- Headings come from `pStyle` (Heading N / Title) OR, for docs that only
+  size their headings (e.g. pandoc output), a heuristic: a fully-bold
+  paragraph whose font size exceeds the body size is a heading; distinct
+  heading sizes map largest->H1, next->H2, etc.
+- Inline code = character styles whose name/id contains "Verbatim" or
+  "Code"; code blocks = `SourceCode`/`Code` paragraph style, grouped into
+  one fence.
+- Images only appear with `-i`; extracted to `--image-dir` (default
+  `<output-stem>_media`) and referenced Obsidian-style `![[name]]`.
+- Running text escapes Markdown-significant chars; code spans are left raw.
 
 ## CLI contract
 

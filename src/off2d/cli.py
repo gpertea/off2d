@@ -1,9 +1,10 @@
 """off2d command-line entry point."""
 
 import argparse
+import os
 import sys
 
-from . import __version__, detect, sheet2txt
+from . import __version__, detect, sheet2txt, docx2md
 
 
 def _build_parser():
@@ -25,8 +26,13 @@ def _build_parser():
     )
     p.add_argument(
         "-i", "--images", action="store_true",
-        help="(docx) extract images and reference them Obsidian-style "
-        "[not yet implemented]",
+        help="(docx) extract embedded images and reference them "
+        "Obsidian-style: ![[image.png]]",
+    )
+    p.add_argument(
+        "--image-dir", metavar="DIR", default=None,
+        help="(docx, with -i) directory for extracted images "
+        "(default: <output-stem>_media next to -o, else <input>_media)",
     )
     p.add_argument("-V", "--version", action="version",
                    version="off2d " + __version__)
@@ -49,10 +55,19 @@ def main(argv=None):
         if kind == detect.XLSX:
             sheet2txt.convert(args.input, args.sheet, args.output)
         elif kind == detect.DOCX:
-            sys.stderr.write(
-                "off2d: docx -> markdown is not implemented yet (M2)\n"
+            md, images = docx2md.convert(
+                args.input, out_path=args.output,
+                extract_images=args.images, image_dir=args.image_dir,
             )
-            return 2
+            if args.output is None:
+                sys.stdout.write(md)
+                if not md.endswith("\n"):
+                    sys.stdout.write("\n")
+            if images:
+                sys.stderr.write(
+                    "off2d: extracted %d image(s) to %s\n"
+                    % (len(images), os.path.dirname(images[0]) or ".")
+                )
     except FileNotFoundError:
         parser.error("no such file: %r" % args.input)
     except (ValueError, OSError) as e:
