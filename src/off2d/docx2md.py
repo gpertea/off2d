@@ -183,13 +183,16 @@ class _Segment:
 
 
 class Converter:
-    def __init__(self, docx, extract_images=False, image_dir=None):
+    def __init__(self, docx, extract_images=False, image_dir=None,
+                 cite_links=True):
         self.dx = docx
         self.extract_images = extract_images
         self.image_dir = image_dir
+        self.cite_links = cite_links
         self.images_written = []
         self._body = self._load_body()
         self._body_size, self._heading_size_level = self._analyze_headings()
+        self._references = self._build_reference_map()
 
     def _load_body(self):
         root = ET.fromstring(self.dx._read("word/document.xml"))
@@ -249,6 +252,51 @@ class Converter:
         for i, size in enumerate(sorted(heading_sizes, reverse=True)):
             levels[size] = i + 1
         return body_size, levels
+
+    # -- reference map (inline citation -> URL) -----------------------------
+
+    def _first_href(self, p):
+        for hl in p.iter(_w("hyperlink")):
+            target = self._hyperlink_target(hl)
+            if target and target.startswith(("http://", "https://")):
+                return target
+        return None
+
+    def _build_reference_map(self):
+        """Map citation number -> URL by reading a trailing References list.
+
+        The section is a heading whose text is "References"/"Bibliography"
+        followed by a list; the Nth list item is reference N, and its first
+        external hyperlink is the citation target. Returns {} if not found."""
+        if self._body is None:
+            return {}
+        refs = {}
+        collecting = False
+        n = 0
+        for el in list(self._body):
+            if el.tag == _w("tbl"):
+                if collecting:
+                    break
+                continue
+            if el.tag != _w("p"):
+                continue
+            kind, _meta = self._paragraph_kind(el)
+            if not collecting:
+                if kind == "heading":
+                    label = self._plain_text(el).strip().lower()
+                    if label in ("references", "bibliography", "works cited"):
+                        collecting = True
+                continue
+            if kind == "list":
+                n += 1
+                url = self._first_href(el)
+                if url:
+                    refs[n] = url
+            elif kind == "heading":
+                break
+            elif kind == "para" and self._plain_text(el).strip():
+                break
+        return refs
 
     # -- inline runs --------------------------------------------------------
 
@@ -414,7 +462,32 @@ class Converter:
                     blocks.append(text)
         if code_buffer is not None:
             blocks.append("```\n" + "\n".join(code_buffer) + "\n```")
-        return self._join_blocks(blocks)
+        md = self._join_blocks(blocks)
+        if self.cite_links and self._references:
+            md = self._linkify_citations(md)
+        return md
+
+    # Matches escaped citation markers in prose, e.g. "\[1\]" or "\[^4\]".
+    # Escaped brackets appear only around prose (code spans/blocks are raw),
+    # which conveniently excludes array-index brackets in code.
+    _CITE_RE = re.compile(r"\\\[(\^?)(\d+)\\\]")
+
+    def _linkify_citations(self, md):
+        """Turn plain-text citation markers into links to their reference URL.
+        Leaves the References section itself untouched."""
+        m = re.search(r"(?m)^#{1,6}\s+(References|Bibliography|Works Cited)\s*$",
+                      md)
+        head, tail = (md[: m.start()], md[m.start():]) if m else (md, "")
+
+        def repl(match):
+            caret, num = match.group(1), int(match.group(2))
+            url = self._references.get(num)
+            if not url:
+                return match.group(0)
+            visible = "\\[%s%d\\]" % (caret, num)
+            return "[%s](%s)" % (visible, url)
+
+        return self._CITE_RE.sub(repl, head) + tail
 
     def _join_blocks(self, blocks):
         """Blank line between blocks, but keep list items tight together."""
@@ -471,7 +544,8 @@ class Converter:
         return "\n".join(lines)
 
 
-def convert(path, out_path=None, extract_images=False, image_dir=None):
+def convert(path, out_path=None, extract_images=False, image_dir=None,
+            cite_links=True):
     """Convert a docx to Markdown. Writes to out_path or returns the string
     (caller prints to stdout). Returns (markdown, images_written)."""
     if extract_images and image_dir is None:
@@ -481,7 +555,8 @@ def convert(path, out_path=None, extract_images=False, image_dir=None):
             stem = os.path.splitext(os.path.basename(path))[0]
         image_dir = stem + "_media"
     with Docx(path) as dx:
-        conv = Converter(dx, extract_images=extract_images, image_dir=image_dir)
+        conv = Converter(dx, extract_images=extract_images,
+                         image_dir=image_dir, cite_links=cite_links)
         md = conv.convert()
         images = list(conv.images_written)
     if out_path:

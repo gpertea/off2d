@@ -55,6 +55,13 @@ install has zero third-party dependencies.
 - [x] `--image-dir`; default `<output-stem>_media` (or `<input>_media`)
 - [x] images silently omitted without `-i`
 
+### M3.5 - Clickable inline citations  [DONE]
+- [x] parse a trailing References/Bibliography list into {number: URL}
+- [x] rewrite inline `[N]` and `[^N]` markers into links to reference N's URL
+      (keep the visible marker; only touch escaped-bracket prose, not code
+      or the reference list itself; unmatched markers stay plain text)
+- [x] `--no-cite-links` to disable; on by default when a reference list exists
+
 ### M4 - Packaging & distribution
 - [ ] publish to PyPI (or tagged git installs) for `uvx off2d`
 - [ ] CI matrix: Linux / Windows / macOS x Python 3.9-3.13

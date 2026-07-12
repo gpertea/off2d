@@ -88,6 +88,32 @@ class SampleDocTests(unittest.TestCase):
     def test_code_lines_not_merged(self):
         self.assertNotIn("txttiledbvcf", self.md)
 
+    def test_inline_citations_linked(self):
+        # plain [1] marker links to reference 1's URL, keeping visible "[1]"
+        self.assertIn(
+            "[\\[1\\]](https://www.tiledb.com/blog/"
+            "population-genomics-data-with-tiledb)",
+            self.md,
+        )
+
+    def test_caret_citations_linked(self):
+        # footnote-style [^N] markers share the reference numbering
+        self.assertRegex(self.md, r"\[\\\[\^\d+\\\]\]\(https?://")
+
+    def test_references_section_not_rewritten(self):
+        # numeric citation markers must not be linkified inside the list
+        # (escaped brackets around non-numeric text like "[PDF]" are fine)
+        import re
+        tail = self.md[self.md.index("## References"):]
+        self.assertIsNone(re.search(r"\[\\\[\^?\d+\\\]\]\(", tail))
+
+    def test_no_cite_links_option(self):
+        plain, _ = docx2md.convert(SAMPLE, cite_links=False)
+        self.assertIn("\\[1\\]", plain)
+        self.assertNotIn(
+            "[\\[1\\]](https://www.tiledb.com", plain
+        )
+
 
 class ImageTests(unittest.TestCase):
     def test_extract_with_images(self):

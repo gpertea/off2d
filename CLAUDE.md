@@ -60,6 +60,13 @@ Module layout (`src/off2d/`):
 - Images only appear with `-i`; extracted to `--image-dir` (default
   `<output-stem>_media`) and referenced Obsidian-style `![[name]]`.
 - Running text escapes Markdown-significant chars; code spans are left raw.
+- Citation linking (on by default, `--no-cite-links` to disable): if the
+  document ends in a "References"/"Bibliography" list, inline plain-text
+  markers `[N]` and `[^N]` are rewritten into links to the Nth reference's
+  first external URL, keeping the visible marker. Both marker styles are
+  assumed to share the reference numbering. The rewrite only touches the
+  escaped-bracket prose form, so code brackets (`[0]`) and the reference
+  list itself are left alone. Markers with no matching reference stay plain.
 
 ## CLI contract
 

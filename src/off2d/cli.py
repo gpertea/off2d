@@ -34,6 +34,11 @@ def _build_parser():
         help="(docx, with -i) directory for extracted images "
         "(default: <output-stem>_media next to -o, else <input>_media)",
     )
+    p.add_argument(
+        "--no-cite-links", dest="cite_links", action="store_false",
+        help="(docx) do not turn inline citation markers like [1] into "
+        "links to their reference URL (linking is on by default)",
+    )
     p.add_argument("-V", "--version", action="version",
                    version="off2d " + __version__)
     return p
@@ -58,6 +63,7 @@ def main(argv=None):
             md, images = docx2md.convert(
                 args.input, out_path=args.output,
                 extract_images=args.images, image_dir=args.image_dir,
+                cite_links=args.cite_links,
             )
             if args.output is None:
                 sys.stdout.write(md)
